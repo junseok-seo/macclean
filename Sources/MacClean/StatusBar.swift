@@ -166,11 +166,11 @@ final class StatusBarController: NSObject {
         }
         var tip = "MacClean — 더블클릭하면 창 열기"
         if let v = store.volume.stats { tip += "\n디스크: \(Fmt.bytes(v.free)) 남음 (\(Fmt.percent(v.usedFraction)) 사용)" }
-        tip += "\n메모리: \(Fmt.memory(m.stats.used)) / \(Fmt.memory(m.stats.total)), 압력 \(m.stats.pressureLabel)"
+        tip += "\n메모리: \(Fmt.memory(m.stats.used)) / \(Fmt.memory(m.stats.total)) (\(Fmt.percent(m.stats.usedFraction))), 압력 \(m.stats.pressureLabel)"
         button.toolTip = tip
     }
 
-    /// 메뉴 막대 문자열: "디스크 95%  메모리 18.7G  CPU 23%  GPU 18%"
+    /// 메뉴 막대 문자열: "디스크 74% · 메모리 81% · CPU 23% · GPU 18%"
     static func title(disk: VolumeStats?, memory: MemoryStats, cpu: Double?, gpu: Double?) -> NSAttributedString {
         let s = NSMutableAttributedString()
         // 굵은 흰 글씨 대신 보통 굵기·한 톤 낮춘 색으로 차분하게
@@ -200,7 +200,8 @@ final class StatusBarController: NSObject {
             return String(repeating: "\u{2007}", count: max(0, 3 - String(n).count)) + t
         }
         add("디스크", disk.map { pct($0.usedFraction) } ?? "–", warn: (disk?.usedFraction ?? 0) > 0.9)
-        add("메모리", String(format: "%.1fG", Double(memory.used) / 1_073_741_824), warn: memory.pressureLevel >= 2)
+        // 퍼센트가 높아도 macOS가 남는 메모리를 활용하는 것일 수 있어, 경고색은 메모리 압력 기준
+        add("메모리", pct(memory.usedFraction), warn: memory.pressureLevel >= 2)
         add("CPU", pct(cpu), warn: (cpu ?? 0) > 0.85)
         add("GPU", pct(gpu), warn: (gpu ?? 0) > 0.9)
         return s

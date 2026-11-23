@@ -296,7 +296,7 @@ struct SettingsView: View {
                         .disabled(!showMenuBar)
                     Toggle("창이 열려 있을 때도 메뉴 막대에 수치 표시", isOn: $alwaysShowStats)
                         .disabled(!showMenuBar)
-                    Text("내려놓으면 창과 Dock 아이콘이 사라지고 메뉴 막대에 '디스크 사용률 · 메모리 사용량 · CPU · GPU'가 숫자로 표시됩니다. 숫자를 더블클릭하면 창이 다시 열리고, 한 번 클릭하면 요약, 우클릭하면 메뉴가 나옵니다. (단축키 ⌥⌘M)")
+                    Text("내려놓으면 창과 Dock 아이콘이 사라지고 메뉴 막대에 '디스크 · 메모리 · CPU · GPU' 사용률이 퍼센트로 표시됩니다. 숫자를 더블클릭하면 창이 다시 열리고, 한 번 클릭하면 요약, 우클릭하면 메뉴가 나옵니다. (단축키 ⌥⌘M)")
                         .font(.callout).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
