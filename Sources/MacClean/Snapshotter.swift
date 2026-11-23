@@ -9,6 +9,62 @@ enum Snapshotter {
     static var args: [String] { CommandLine.arguments }
     static var isActive: Bool { args.contains("--snapshot") }
     static var isWindowTest: Bool { args.contains("--window-test") }
+    static var isUpdateTest: Bool { args.contains("--update-test") }
+    static var outOverride: URL?
+
+    /// `MacClean --update-test <출력폴더> [--pretend-version 1.0.0]`: GitHub 릴리스 조회 결과를 기록하고 개요·도움말·정보 창을 찍는다
+    static func runUpdateTest(_ store: AppStore) {
+        let dir: URL = {
+            guard let i = args.firstIndex(of: "--update-test"), i + 1 < args.count else { return URL(fileURLWithPath: NSTemporaryDirectory()) }
+            return URL(fileURLWithPath: args[i + 1])
+        }()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        outOverride = dir
+        Task { @MainActor in
+            var log: [String] = ["현재 버전: \(AppVersion.version) (빌드 \(AppVersion.buildLabel))"]
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            store.updates.check(showResult: false)
+            for _ in 0..<30 {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                if case .checking = store.updates.state { continue }
+                break
+            }
+            switch store.updates.state {
+            case .available(let r):
+                log.append("결과: 새 버전 \(r.tag) · DMG \(r.dmgURL?.absoluteString ?? "없음") · 페이지 \(r.pageURL)")
+                log.append("요약:\n" + UpdateChecker.summarize(r.notes))
+            case .upToDate(let t): log.append("결과: 최신 (GitHub 최신 \(t))")
+            case .failed(let w): log.append("결과: 실패 — \(w)")
+            default: log.append("결과: \(store.updates.state)")
+            }
+            // 상단 메뉴 구성 기록 (앱 메뉴·도움말 메뉴)
+            let menus = NSApp.mainMenu?.items ?? []
+            for (i, top) in menus.enumerated() where i == 0 || top === menus.last {
+                let items = top.submenu?.items.map { $0.isSeparatorItem ? "—" : $0.title } ?? []
+                log.append("[\(i == 0 ? "앱 메뉴" : top.title)] " + items.joined(separator: " | "))
+            }
+            store.pane = .overview
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            capture(name: "overview-update")
+            store.helpSection = .faq
+            WindowManager.shared.openAux?("help")
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            captureWindow(titled: "MacClean 도움말", name: "help")
+            WindowManager.shared.openAux?("about")
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            captureWindow(titled: "MacClean 정보", name: "about")
+            try? log.joined(separator: "\n").write(to: dir.appendingPathComponent("update-test.txt"), atomically: true, encoding: .utf8)
+            NSApp.terminate(nil)
+        }
+    }
+
+    static func captureWindow(titled title: String, name: String) {
+        guard let window = NSApp.windows.first(where: { $0.title == title && $0.isVisible }),
+              let view = window.contentView?.superview ?? window.contentView,
+              let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: (outOverride ?? outDir).appendingPathComponent("\(name).png"))
+    }
 
     /// `MacClean --window-test <출력폴더>`: 내려놓기·더블클릭 복귀·닫은 뒤 복귀를 확인해 기록한다.
     static func runWindowTest(_ store: AppStore) {
@@ -92,6 +148,6 @@ enum Snapshotter {
               let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         let data = rep.representation(using: .png, properties: [:])
-        try? data?.write(to: outDir.appendingPathComponent("\(name).png"))
+        try? data?.write(to: (outOverride ?? outDir).appendingPathComponent("\(name).png"))
     }
 }

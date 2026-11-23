@@ -34,6 +34,8 @@ struct MacCleanApp: App {
         }
         .defaultSize(width: 1240, height: 800)
         .commands {
+            CommandGroup(replacing: .appInfo) { AboutCommand(store: store) }
+            CommandGroup(replacing: .help) { HelpCommands(store: store) }
             CommandGroup(replacing: .newItem) {}
             CommandMenu("검사") {
                 Button("정리 추천 다시 검사") { store.cleanup.scan(); store.pane = .cleanup }
@@ -51,6 +53,16 @@ struct MacCleanApp: App {
         Settings {
             SettingsView().injectModels(store).frame(width: 560).padding(20)
         }
+
+        Window("MacClean 도움말", id: "help") {
+            HelpView().injectModels(store)
+        }
+        .defaultSize(width: 1000, height: 760)
+
+        Window("MacClean 정보", id: "about") {
+            AboutView().injectModels(store)
+        }
+        .windowResizability(.contentSize)
     }
 }
 
@@ -64,6 +76,7 @@ extension View {
             .environmentObject(store.memory)
             .environmentObject(store.apps)
             .environmentObject(store.large)
+            .environmentObject(store.updates)
     }
 }
 
@@ -105,6 +118,10 @@ struct ContentView: View {
         .background(WindowAccessor { WindowManager.shared.attach($0) })
         .onAppear {
             WindowManager.shared.openMain = { openWindow(id: "main") }
+            WindowManager.shared.openAux = { id in
+                NSApp.activate()
+                openWindow(id: id)
+            }
             store.startIfNeeded()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -174,6 +191,7 @@ struct SidebarFooter: View {
 // MARK: - 메뉴 막대
 
 struct MenuBarView: View {
+    @EnvironmentObject var updates: UpdateChecker
     @EnvironmentObject var store: AppStore
     @EnvironmentObject var volume: VolumeModel
     @EnvironmentObject var memory: MemoryModel
@@ -214,7 +232,13 @@ struct MenuBarView: View {
             }
             if cleanup.safeTotal > 0 {
                 Label("안전하게 정리 가능: \(Fmt.bytes(cleanup.safeTotal))", systemImage: "sparkles")
-                    .font(.callout).foregroundStyle(.green)
+                    .font(.callout).foregroundStyle(Palette.sage)
+            }
+            if let r = updates.available {
+                Button { updates.presentResult() } label: {
+                    Label("새 버전 \(UpdateChecker.clean(r.tag)) 업데이트 가능", systemImage: "arrow.down.circle.fill")
+                }
+                .buttonStyle(.link)
             }
             Divider()
             HStack {
@@ -253,6 +277,8 @@ struct SettingsView: View {
     @AppStorage(Prefs.autoScan) private var autoScan = true
     @AppStorage(Prefs.minimizeToMenuBar) private var minimizeToMenuBar = true
     @AppStorage(Prefs.alwaysShowStats) private var alwaysShowStats = false
+    @AppStorage(Prefs.autoUpdateCheck) private var autoUpdateCheck = true
+    @EnvironmentObject var updates: UpdateChecker
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -268,7 +294,7 @@ struct SettingsView: View {
                         Spacer()
                         Button("시스템 설정 열기") { permissions.openSettings() }
                     }
-                    Text("휴지통, 메일, 메시지, 다른 앱의 데이터 폴더를 분석하려면 필요합니다. 켠 뒤에는 MacClean을 다시 실행하세요. MacClean은 인터넷으로 아무것도 보내지 않으며, 파일 내용을 읽지 않고 크기와 날짜만 확인합니다.")
+                    Text("휴지통, 메일, 메시지, 다른 앱의 데이터 폴더를 분석하려면 필요합니다. 켠 뒤에는 MacClean을 다시 실행하세요. 파일 내용은 읽지 않고 크기와 날짜만 확인합니다.")
                         .font(.callout).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -313,7 +339,25 @@ struct SettingsView: View {
                 .padding(6)
             } label: { Text("판정 기준") }
 
-            Text("MacClean 1.0 · 모든 분석은 이 Mac 안에서만 이뤄집니다.")
+            GroupBox {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("MacClean \(AppVersion.version)").font(.headline)
+                        Text("빌드 \(AppVersion.buildLabel)").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Button("버전 정보") { WindowManager.shared.openAux?("about") }
+                    }
+                    UpdateStatusRow()
+                    Toggle("하루에 한 번 자동으로 업데이트 확인", isOn: $autoUpdateCheck)
+                    Text("GitHub 저장소(junseok-seo/macclean)의 최신 릴리스와 비교합니다. 공개 릴리스 정보를 받아 오기만 하고 이 Mac의 정보는 보내지 않습니다."
+                         + (updates.lastChecked.map { " 마지막 확인: \(Fmt.ago($0))." } ?? ""))
+                        .font(.callout).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(6)
+            } label: { Text("버전·업데이트") }
+
+            Text("모든 분석은 이 Mac 안에서만 이뤄집니다. 파일 내용은 읽지 않습니다.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }

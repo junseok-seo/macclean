@@ -57,6 +57,8 @@ enum Prefs {
     static let didScanOnce = "didScanOnce"
     static let minimizeToMenuBar = "minimizeToMenuBar"
     static let alwaysShowStats = "alwaysShowStats"
+    static let autoUpdateCheck = "autoUpdateCheck"
+    static let lastUpdateCheck = "lastUpdateCheck"
 }
 
 // MARK: - 루트
@@ -70,8 +72,10 @@ final class AppStore: ObservableObject {
     let memory = MemoryModel()
     let apps = AppsModel()
     let large = LargeFilesModel()
+    let updates = UpdateChecker()
 
     @Published var pane: Pane = .overview
+    @Published var helpSection: HelpSection? = .start
     @Published var toast: Toast?
     @Published var reportSheet: ReportSheet?
     @Published var confirm: ConfirmRequest?
@@ -79,7 +83,8 @@ final class AppStore: ObservableObject {
 
     init() {
         UserDefaults.standard.register(defaults: [Prefs.showMenuBar: true, Prefs.autoScan: true, Prefs.trashSafeItems: false,
-                                                  Prefs.minimizeToMenuBar: true, Prefs.alwaysShowStats: false])
+                                                  Prefs.minimizeToMenuBar: true, Prefs.alwaysShowStats: false,
+                                                  Prefs.autoUpdateCheck: true])
         disk.store = self
         cleanup.store = self
         apps.store = self
@@ -95,7 +100,9 @@ final class AppStore: ObservableObject {
         permissions.refresh()
         StatusBarController.install(self)
         if Snapshotter.isWindowTest { Snapshotter.runWindowTest(self); return }
+        if Snapshotter.isUpdateTest { Snapshotter.runUpdateTest(self); return }
         if Snapshotter.isActive { Snapshotter.run(self); return }
+        updates.checkIfDue()
         // 권한 없이 처음 실행하면 폴더마다 허용 창이 연달아 뜨므로, 권한이 있거나 한 번 직접 검사한 뒤에만 자동 검사
         let d = UserDefaults.standard
         if d.bool(forKey: Prefs.autoScan) && (permissions.fullDiskAccess || d.bool(forKey: Prefs.didScanOnce)) { cleanup.scan() }

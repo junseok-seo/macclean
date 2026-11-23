@@ -10,6 +10,8 @@ final class WindowManager: NSObject {
     weak var mainWindow: NSWindow?
     /// SwiftUI openWindow — 창을 닫아 없어졌을 때 새로 연다
     var openMain: (() -> Void)?
+    /// 도움말·버전 정보 창 열기 (id: "help", "about")
+    var openAux: ((String) -> Void)?
 
     var putDownEnabled: Bool {
         let d = UserDefaults.standard
@@ -248,12 +250,27 @@ final class StatusBarController: NSObject {
         add("정리 추천", .cleanup)
         add("메모리", .memory)
         menu.addItem(.separator())
+        for (title, sel) in [("도움말", #selector(menuHelp)), ("업데이트 확인…", #selector(menuUpdate)), ("MacClean 정보", #selector(menuAbout))] {
+            let mi = NSMenuItem(title: title, action: sel, keyEquivalent: "")
+            mi.target = self
+            menu.addItem(mi)
+        }
+        menu.addItem(.separator())
         let quit = NSMenuItem(title: "MacClean 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
         if let b = item.button {
             menu.popUp(positioning: nil, at: NSPoint(x: 0, y: b.bounds.height + 4), in: b)
         }
     }
+
+    @objc private func menuHelp() {
+        store.helpSection = .start
+        WindowManager.shared.openAux?("help")
+    }
+
+    @objc private func menuUpdate() { store.updates.check(showResult: true) }
+
+    @objc private func menuAbout() { WindowManager.shared.openAux?("about") }
 
     @objc private func menuOpen(_ sender: NSMenuItem) {
         if let raw = sender.representedObject as? String, let pane = Pane(rawValue: raw) { store.pane = pane }

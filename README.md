@@ -47,6 +47,13 @@ xattr -dr com.apple.quarantine /Applications/MacClean.app
 | **메모리** | 메모리 압력, 사용 내역(앱/와이어드/압축/캐시/스왑), 앱별 사용량(헬퍼·가상머신 포함), 상태 해석, 앱 종료 |
 | **메뉴 막대** | 창을 내려놓으면 디스크 사용률·메모리 사용량·CPU·GPU를 숫자로 표시. 더블클릭하면 창이 다시 열림 |
 
+### 도움말·버전 정보·업데이트
+
+- **도움말 메뉴**(⌘?): 처음 시작하기, 판정 배지, 화면별 안내, 메뉴 막대 사용법, 지운 파일이 가는 곳, 자주 묻는 질문, 단축키를 도움말 창에서 봅니다. 메뉴에서 주제를 고르면 그 위치로 바로 이동하고, macOS 도움말 검색으로도 찾을 수 있습니다.
+- **MacClean 정보**: 버전·빌드, 시스템 정보, 라이선스, GitHub 링크, 문제 신고용 "정보 복사".
+- **업데이트 확인…**(앱 메뉴·도움말 메뉴·메뉴 막대 우클릭): 이 저장소의 [최신 릴리스](https://github.com/junseok-seo/macclean/releases/latest)와 버전을 비교합니다. 새 버전이 있으면 릴리스 노트 요약과 함께 DMG를 바로 받을 수 있습니다.
+- 하루 한 번 앱을 시작할 때 자동으로도 확인하며(설정에서 끌 수 있음), 새 버전이 있으면 개요 화면과 메뉴 막대 요약에 표시합니다.
+
 ### 메뉴 막대로 내려놓기
 
 - 창의 **노란 버튼(최소화)** 또는 ⌥⌘M → 창과 Dock 아이콘이 사라지고 메뉴 막대에 `디스크 75% · 메모리 55% · CPU 11% · GPU 20%` 가 표시됩니다.
@@ -90,7 +97,7 @@ xattr -dr com.apple.quarantine /Applications/MacClean.app
 - 그룹 전체 선택 체크박스는 '안전'·'확인' 항목만 고름. '주의' 항목은 하나씩 직접 골라야 함
 - 정리 전 확인 창에서 바로 삭제/휴지통/명령 실행을 나눠서 보여 주고, 실행 중인 앱과 '주의' 항목을 경고
 - iCloud·클라우드 전용 파일은 크기를 셀 때 다운로드되지 않도록 막음
-- 파일 내용은 읽지 않고 크기·날짜만 확인. 네트워크로 아무것도 보내지 않음
+- 파일 내용은 읽지 않고 크기·날짜만 확인. 업데이트 확인 때만 GitHub 공개 릴리스 정보를 받아 오며, 이 Mac의 정보는 보내지 않음
 
 ## 메모리에 대해
 
@@ -113,6 +120,7 @@ swift run mccheck clean --default    # 기본 선택 항목 미리보기 (--yes 
 # 화면 검증 (각 화면을 PNG로 저장, 아무것도 지우지 않음)
 dist/MacClean.app/Contents/MacOS/MacClean --snapshot /tmp/shots ~/Library/Developer
 dist/MacClean.app/Contents/MacOS/MacClean --window-test /tmp/wt   # 내려놓기·더블클릭 복귀 확인
+dist/MacClean.app/Contents/MacOS/MacClean --update-test /tmp/ut --pretend-version 1.0.0   # 업데이트 확인·메뉴 구성 확인
 ```
 
 구조:

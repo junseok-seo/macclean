@@ -6,6 +6,7 @@ struct OverviewView: View {
     @EnvironmentObject var volume: VolumeModel
     @EnvironmentObject var cleanup: CleanupModel
     @EnvironmentObject var memory: MemoryModel
+    @EnvironmentObject var updates: UpdateChecker
 
     var body: some View {
         ScrollView {
@@ -14,6 +15,20 @@ struct OverviewView: View {
                     Text("Mac 상태 한눈에 보기").font(.largeTitle.weight(.bold))
                     Text("어디에 무엇이 있는지, 지워도 되는지를 판정해서 보여 줍니다.")
                         .foregroundStyle(.secondary)
+                }
+                if let r = updates.available {
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(Palette.blue)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("새 버전 \(UpdateChecker.clean(r.tag))이 나왔습니다").font(.headline)
+                            Text("지금 버전 \(AppVersion.version) · GitHub 릴리스").font(.callout).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("자세히") { updates.presentResult() }.buttonStyle(.borderedProminent)
+                    }
+                    .padding(14)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Palette.blue.opacity(0.1)))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.blue.opacity(0.3)))
                 }
                 PermissionBanner()
                 HStack(alignment: .top, spacing: 16) {
