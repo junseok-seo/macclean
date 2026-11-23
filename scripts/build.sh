@@ -4,7 +4,7 @@
 #   ./scripts/build.sh --install  → 위 작업 후 /Applications 에 설치
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 BUILD="$(date +%Y%m%d%H%M)"
 ROOT="${0:A:h:h}"
 DIST="$ROOT/dist"

@@ -173,31 +173,27 @@ final class StatusBarController: NSObject {
     /// 메뉴 막대 문자열: "디스크 74% · 메모리 81% · CPU 23% · GPU 18%"
     static func title(disk: VolumeStats?, memory: MemoryStats, cpu: Double?, gpu: Double?) -> NSAttributedString {
         let s = NSMutableAttributedString()
-        // 굵은 흰 글씨 대신 보통 굵기·한 톤 낮춘 색으로 차분하게
-        let labelFont = NSFont.systemFont(ofSize: 10, weight: .regular)
-        let valueFont = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-        // 메뉴 막대가 밝은지 어두운지에 따라 그릴 때마다 정해지는 색 (고정된 흰색·검은색 대신)
-        func dyn(dark: NSColor, light: NSColor) -> NSColor {
-            NSColor(name: nil) { ap in
-                ap.bestMatch(from: [.darkAqua, .vibrantDark, .aqua, .vibrantLight]).map { $0 == .darkAqua || $0 == .vibrantDark } == true ? dark : light
-            }
+        // 글자색은 시스템 메뉴 막대 색(labelColor)을 그대로 써서 배경화면이 비쳐도 시계처럼 읽히게 한다.
+        // 부드러운 느낌은 색을 흐리게 하는 대신 굵기(보통)와 크기(라벨 한 단계 작게)로 낸다.
+        let labelFont = NSFont.systemFont(ofSize: 11, weight: .regular)
+        let valueFont = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        let textColor = NSColor.labelColor
+        let sepColor = NSColor.secondaryLabelColor
+        let warnColor = NSColor(name: nil) { ap in
+            ap.bestMatch(from: [.darkAqua, .vibrantDark, .aqua, .vibrantLight]).map { $0 == .darkAqua || $0 == .vibrantDark } == true
+                ? NSColor(srgbRed: 1.0, green: 0.80, blue: 0.50, alpha: 1)
+                : NSColor(srgbRed: 0.68, green: 0.38, blue: 0.08, alpha: 1)
         }
-        let valueColor = dyn(dark: NSColor(white: 0.90, alpha: 1), light: NSColor(white: 0.18, alpha: 1))
-        let labelColor = dyn(dark: NSColor(white: 0.62, alpha: 1), light: NSColor(white: 0.42, alpha: 1))
-        let sepColor = dyn(dark: NSColor(white: 0.42, alpha: 1), light: NSColor(white: 0.66, alpha: 1))
-        let warnColor = dyn(dark: NSColor(srgbRed: 0.93, green: 0.72, blue: 0.48, alpha: 1),
-                            light: NSColor(srgbRed: 0.76, green: 0.48, blue: 0.20, alpha: 1))
         func add(_ label: String, _ value: String, warn: Bool) {
             if s.length > 0 { s.append(NSAttributedString(string: "  ·  ", attributes: [.font: labelFont, .foregroundColor: sepColor])) }
-            s.append(NSAttributedString(string: label + " ", attributes: [.font: labelFont, .foregroundColor: labelColor, .baselineOffset: 0.5]))
-            s.append(NSAttributedString(string: value, attributes: [.font: valueFont, .foregroundColor: warn ? warnColor : valueColor]))
+            s.append(NSAttributedString(string: label + " ", attributes: [.font: labelFont, .foregroundColor: textColor]))
+            s.append(NSAttributedString(string: value, attributes: [.font: valueFont, .foregroundColor: warn ? warnColor : textColor]))
         }
         // 자릿수가 바뀌어도 폭이 흔들리지 않도록 숫자 폭 공백(U+2007)으로 채운다
         func pct(_ v: Double?) -> String {
-            guard let v else { return "\u{2007}\u{2007}–" }
+            guard let v else { return "\u{2007}–" }
             let n = Int((v * 100).rounded())
-            let t = "\(n)%"
-            return String(repeating: "\u{2007}", count: max(0, 3 - String(n).count)) + t
+            return String(repeating: "\u{2007}", count: max(0, 2 - String(n).count)) + "\(n)%"
         }
         add("디스크", disk.map { pct($0.usedFraction) } ?? "–", warn: (disk?.usedFraction ?? 0) > 0.9)
         // 퍼센트가 높아도 macOS가 남는 메모리를 활용하는 것일 수 있어, 경고색은 메모리 압력 기준
@@ -268,12 +264,19 @@ final class StatusBarController: NSObject {
     func snapshotButton(to url: URL) {
         // 메뉴 막대 버튼과 같은 방식(뷰가 자기 외형으로 그림)으로, 밝은·어두운 메뉴 막대를 각각 재현한다
         let title = Self.title(disk: store.volume.stats, memory: store.memory.stats, cpu: store.memory.cpu, gpu: store.memory.gpu)
-        let w = ceil(title.size().width) + 32, h: CGFloat = 26
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: w, height: h * 2))
-        for (i, name) in [NSAppearance.Name.aqua, .darkAqua].enumerated() {
+        let w = ceil(title.size().width) + 32, h: CGFloat = 28
+        // 위에서부터: 어두운 메뉴 막대, 파란 배경화면이 비친 메뉴 막대, 밝은 메뉴 막대
+        let rows: [(NSAppearance.Name, NSColor)] = [
+            (.aqua, NSColor(white: 0.94, alpha: 1)),
+            (.vibrantDark, NSColor(srgbRed: 0.18, green: 0.50, blue: 0.80, alpha: 1)),
+            (.darkAqua, NSColor(white: 0.17, alpha: 1)),
+        ]
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: w, height: h * CGFloat(rows.count)))
+        for (i, row) in rows.enumerated() {
+            let name = row.0
             let bg = NSView(frame: NSRect(x: 0, y: CGFloat(i) * h, width: w, height: h))
             bg.wantsLayer = true
-            bg.layer?.backgroundColor = (name == .darkAqua ? NSColor(white: 0.17, alpha: 1) : NSColor(white: 0.94, alpha: 1)).cgColor
+            bg.layer?.backgroundColor = row.1.cgColor
             bg.appearance = NSAppearance(named: name)
             let label = NSTextField(labelWithAttributedString: title)
             label.sizeToFit()

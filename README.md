@@ -24,7 +24,7 @@ xattr -dr com.apple.quarantine /Applications/MacClean.app
 ./scripts/build.sh --install
 ```
 
-- `dist/MacClean.app` 과 `dist/MacClean-1.0.0.dmg` 를 만들고 `/Applications` 에 복사합니다.
+- `dist/MacClean.app` 과 `dist/MacClean-<버전>.dmg` 를 만들고 `/Applications` 에 복사합니다.
 - 요구 사항: macOS 14 이상(실행), Xcode 또는 Swift 6 도구(빌드).
 
 ### 권장: 전체 디스크 접근 권한
@@ -49,7 +49,7 @@ xattr -dr com.apple.quarantine /Applications/MacClean.app
 
 ### 메뉴 막대로 내려놓기
 
-- 창의 **노란 버튼(최소화)** 또는 ⌥⌘M → 창과 Dock 아이콘이 사라지고 메뉴 막대에 `디스크 74% · 메모리 81% · CPU 12% · GPU 10%` 가 표시됩니다.
+- 창의 **노란 버튼(최소화)** 또는 ⌥⌘M → 창과 Dock 아이콘이 사라지고 메뉴 막대에 `디스크 75% · 메모리 55% · CPU 11% · GPU 20%` 가 표시됩니다.
 - 메모리 %는 실제 메모리 대비 사용량(앱 + 와이어드 + 압축)입니다. 높아도 정상일 수 있어 경고색은 **메모리 압력**이 경고 이상일 때만 켜집니다. 마우스를 올리면 GB 수치가 보입니다.
 - 숫자를 **더블클릭** → 창이 다시 열립니다. 한 번 클릭하면 요약 팝오버, 우클릭하면 메뉴.
 - 빨간 버튼으로 닫아도 앱은 메뉴 막대에 남습니다. 설정에서 "창이 열려 있을 때도 수치 표시"를 켤 수 있습니다.
@@ -130,3 +130,7 @@ Sources/MacClean/       SwiftUI 앱
 Sources/mccheck/        검증용 명령줄 도구
 scripts/                빌드·아이콘·Info.plist
 ```
+
+## 라이선스
+
+[MIT](LICENSE)
